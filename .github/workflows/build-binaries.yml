@@ -1,0 +1,34 @@
+name: build-binaries
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-binaries.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  linux-x64:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install toolchain
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends cmake ninja-build
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DKIMODO_BUILD_TESTS=OFF -DKIMODO_ENABLE_VULKAN=OFF -DKIMODO_ENABLE_FUZZERS=OFF "-DCMAKE_BUILD_RPATH=$ORIGIN"
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Package
+        run: |
+          mkdir -p dist/kimodo-linux-x64
+          cp build/kmd-generate build/kmd-inspect build/kmd-encode build/kmd-quantize-text build/kmd-pack-text build/kmd-sample-fixture build/kmd-sample-embedding dist/kimodo-linux-x64/
+          find build -name 'lib*.so*' -exec cp -P {} dist/kimodo-linux-x64/ \;
+          tar -C dist -czf kimodo-linux-x64.tar.gz kimodo-linux-x64
+          ls -la dist/kimodo-linux-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kimodo-linux-x64
+          path: kimodo-linux-x64.tar.gz
+          retention-days: 30
