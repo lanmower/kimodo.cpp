@@ -1,0 +1,29 @@
+name: fetch-weights
+on:
+  workflow_dispatch:
+jobs:
+  fetch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Hugging Face hub
+        run: pip install huggingface_hub
+      - name: Download motion and text GGUF
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          mkdir -p weights
+          time python3 scripts/download_gguf_weights.py --output "$PWD/weights" --model soma-rp-v1.1 --text-quantization q4_k
+          ls -la weights weights/models
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kimodo-weights-soma-rp-q4k
+          path: |
+            weights/models/kimodo-soma-rp-v1.1-f32.gguf
+            weights/Llama-3-Kimodo-Q4_K.gguf
+            weights/tokenizer.gguf
+          retention-days: 3
